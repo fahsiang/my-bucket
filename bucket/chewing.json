@@ -12,6 +12,7 @@
         "script": "msiexec /x {GUID} /qn"
     },
     "persist": [
-        "%APPDATA%\\Chewing"
-    ]
+    "AppData\\Roaming\\Chewing"
+	]
+
 }
