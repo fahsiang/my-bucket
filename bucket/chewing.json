@@ -12,6 +12,30 @@
     "uninstaller": {
         "script": "msiexec /x \"$dir\\windows-chewing-tsf-26.4.2.0-installer.msi\" /qn /norestart"
     },
+    "post_install": [
+        "$model = (Get-WmiObject -Class Win32_ComputerSystem).Model",
+        "$vendor = (Get-WmiObject -Class Win32_ComputerSystem).Manufacturer",
+        "$isVM = $model -match 'Virtual|VMware|Hyper-V' -or $vendor -match 'VirtualBox|VMware|Microsoft Corporation'",
+        "$chewingPath = \"$env:APPDATA\\Chewing\"",
+        "",
+        "if ($isVM) {",
+        "    Write-Host '偵測到 VM 環境，正在連結至共享資料夾...' -ForegroundColor Cyan",
+        "    $sharedPath = \"Z:\\Config\\Chewing\" # 請確保 VM 中 Z 槽已掛載",
+        "    if (Test-Path $chewingPath) { Remove-Item $chewingPath -Recurse -Force }",
+        "    New-Item -ItemType SymbolicLink -Path $chewingPath -Target $sharedPath -Force",
+        "} else {",
+        "    Write-Host '偵測到 Host 環境，正在建立同步連結...' -ForegroundColor Green",
+        "    $hostSyncPath = \"C:\\Sync\\Chewing\" # <--- Jack，請修改為你 Host 上的實際同步路徑",
+        "    if (!(Test-Path $hostSyncPath)) { New-Item -ItemType Directory -Path $hostSyncPath -Force }",
+        "    if (Test-Path $chewingPath) {",
+        "        if (!((Get-Item $chewingPath).Attributes -match 'ReparsePoint')) {",
+        "            Copy-Item \"$chewingPath\\*\" $hostSyncPath -Recurse -Force",
+        "            Remove-Item $chewingPath -Recurse -Force",
+        "        }",
+        "    }",
+        "    New-Item -ItemType SymbolicLink -Path $chewingPath -Target $hostSyncPath -Force",
+        "}"
+    ],
     "checkver": {
         "url": "https://codeberg.org/chewing/windows-chewing-tsf/releases",
         "regex": "v([\\d.]+)/windows-chewing-tsf-([\\d.]+)-installer\\.msi"
